@@ -1,0 +1,76 @@
+COMMAND: slither AuditTarget.sol --config-file config/slither.raw.json --fail-none --json evidence/before_raw/slither.json
+SLITHER_VERSION:
+0.11.6
+
+SOLC_VERSION:
+solc, the solidity compiler commandline interface
+Version: 0.8.24+commit.e11b9ed9.Linux.g++
+
+
+Detector: reentrancy-eth
+Reentrancy in StakingPool_1005.pullFunds() (AuditTarget.sol#36-42):
+	External calls:
+	- (ok,None) = msg.sender.call{value: amount}() (AuditTarget.sol#39)
+	State variables written after the call(s):
+	- shares[msg.sender] = 0 (AuditTarget.sol#41)
+	StakingPool_1005.shares (AuditTarget.sol#12) can be used in cross function reentrancies:
+	- StakingPool_1005.pullFunds() (AuditTarget.sol#36-42)
+	- StakingPool_1005.save() (AuditTarget.sol#26-29)
+	- StakingPool_1005.shares (AuditTarget.sol#12)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-1
+
+Detector: suicidal
+StakingPool_1005.shutdown() (AuditTarget.sol#53-55) allows anyone to destruct the contract
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#suicidal
+
+Detector: incorrect-equality
+StakingPool_1005.isEmpty() (AuditTarget.sol#49-51) uses a dangerous strict equality:
+	- address(this).balance == 0 (AuditTarget.sol#50)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
+
+Detector: tx-origin
+StakingPool_1005.updateOwner(address) (AuditTarget.sol#57-61) uses tx.origin for authorization: require(bool,string)(tx.origin == owner,not owner) (AuditTarget.sol#58)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-usage-of-txorigin
+
+Detector: unchecked-lowlevel
+StakingPool_1005.flush(address) (AuditTarget.sol#44-47) ignores return value by to.call{value: address(this).balance}() (AuditTarget.sol#46)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unchecked-low-level-calls
+
+Detector: timestamp
+StakingPool_1005.vestStep() (AuditTarget.sol#63-68) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(block.timestamp >= cooldownEnd,locked) (AuditTarget.sol#64)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+
+Detector: low-level-calls
+Low level call in StakingPool_1005.ownerWithdraw(uint256) (AuditTarget.sol#31-34):
+	- (ok,None) = address(owner).call{value: amount}() (AuditTarget.sol#32)
+Low level call in StakingPool_1005.pullFunds() (AuditTarget.sol#36-42):
+	- (ok,None) = msg.sender.call{value: amount}() (AuditTarget.sol#39)
+Low level call in StakingPool_1005.flush(address) (AuditTarget.sol#44-47):
+	- to.call{value: address(this).balance}() (AuditTarget.sol#46)
+Low level call in StakingPool_1005.vestStep() (AuditTarget.sol#63-68):
+	- (ok,None) = address(owner).call{value: address(this).balance / 10}() (AuditTarget.sol#66)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+
+Detector: naming-convention
+Contract StakingPool_1005 (AuditTarget.sol#10-69) is not in CapWords
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+AuditTarget.sol analyzed (2 contracts with 102 detectors), 11 result(s) found
+Multiple frameworks detected: solc, Solc-json. Using solc (highest priority). Use --compile-force-framework to override.
+'solc --version' running
+'solc AuditTarget.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --allow-paths .,/mnt/d/Study/Blockchain/TH/Lab6/Lab06_SinhVien' running
+Compilation warnings/errors on AuditTarget.sol:
+Warning: Return value of low-level calls not used.
+  --> AuditTarget.sol:46:9:
+   |
+46 |         to.call{value: address(this).balance}("");
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning: "selfdestruct" has been deprecated. Note that, starting from the Cancun hard fork, the underlying opcode no longer deletes the code and data associated with an account and only transfers its Ether to the beneficiary, unless executed in the same transaction in which the contract was created (see EIP-6780). Any use in newly deployed contracts is strongly discouraged even if the new behavior is taken into account. Future changes to the EVM might further reduce the functionality of the opcode.
+  --> AuditTarget.sol:54:9:
+   |
+54 |         selfdestruct(payable(msg.sender));
+   |         ^^^^^^^^^^^^
+
+
